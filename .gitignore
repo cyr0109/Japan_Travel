@@ -1,0 +1,6 @@
+venv
+*.db
+*.pdf
+*.md
+*.csv
+.DS_Store
