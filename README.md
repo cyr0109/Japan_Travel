@@ -1,1 +1,165 @@
-# Japan_Travel
+# 從 PTT 日本板社群共現網絡挖掘日本景點隱藏偏好
+
+**Uncovering Hidden Travel Preferences from PTT Japan Board Co-occurrence Networks**
+
+Social Media Analytics | Spring 2026
+
+---
+
+## 快速開始
+
+```bash
+# 1. 建立虛擬環境（Python 3.10）
+python3.10 -m venv venv
+source venv/bin/activate
+
+# 2. 安裝套件
+pip install -r requirements.txt
+
+# 3. 依序執行各階段腳本（資料庫已包含完整結果，可跳至任一階段）
+python ptt_crawler.py          # 階段一：爬蟲（已完成，跳過）
+python ner_pipeline.py         # 階段二：NER（已完成，跳過）
+python prelabel_whitelist.py   # 階段三：白名單預標記
+python apply_corrections.py    # 階段三：套用人工校正
+python import_whitelist.py     # 階段三：匯入白名單
+python build_pmi_network.py    # 階段四：PMI 共現網絡
+python louvain_community.py    # 階段五：Louvain 社群偵測
+python sentiment_analysis.py   # 階段六：情感分析
+python recompute_dims.py       # 階段六：六維側寫（±150 字）
+```
+
+> `japan_travel.db` 已含所有分析結果，可直接用 SQLite 查詢或接續未完成的階段八、九。
+
+---
+
+## 研究目標
+
+從 PTT Japan 板的旅遊貼文中，透過社群網絡分析找出「隱藏版景點」——定義為**社群評價高但商業平台曝光不足**的景點，並分析被忽略的原因。
+
+| RQ | 問題 | 方法 |
+|----|------|------|
+| RQ1 | PTT 日本景點共現網絡中有哪些隱性行程群集？ | Louvain 社群偵測 |
+| RQ2 | 隱藏版景點在六維體驗上與主流景點有何差異？ | 關鍵詞側寫 + Mann-Whitney U |
+| RQ3 | 哪些高評價景點未出現於 KKday 產品標題？ | 情感分數 + 頻率門檻 + KKday 驗證 |
+
+---
+
+## 進度總覽
+
+| 階段 | 項目 | 狀態 | 備註 |
+|------|------|------|------|
+| 1 | PTT 爬蟲 & 資料收集 | ✅ 完成 | 20,487 篇 |
+| 2 | CKIP NER 地名擷取 | ✅ 完成 | 5,409 篇遊記，4,029 個 entity |
+| 3 | 景點白名單建立 | ✅ 完成 | 544 個景點（人工校正）|
+| 4 | PMI 共現網絡 | ✅ 完成 | 153 節點，370 邊，avg PMI=3.756 |
+| 5 | Louvain 社群偵測 | ✅ 完成 | Q=0.8817，21 個有效群集 |
+| 6 | 情感分析 + 六維側寫 | ✅ 完成 | 543 個景點，語料平均情感 0.529 |
+| 7 | 隱藏版景點識別 | ✅ 完成 | hidden_score 已計算 |
+| 8 | KKday 商業曝光驗證 | ⬜ 待做 | |
+| 9 | Streamlit Demo 工具 | ⬜ 待做 | |
+| 10 | Pyvis 視覺化 | ⬜ 待做 | |
+
+---
+
+## 主要結果
+
+### 行程群集（RQ1）
+
+Modularity Q = **0.8817**（門檻 ≥ 0.3 ✅）
+
+| 群集 | 景點數 | 核心景點 | 地理標籤 |
+|------|--------|---------|---------|
+| C3 | 41 | 富士山、河口湖、山中湖 | 富士山圈 |
+| C5 | 19 | 洞爺湖、支笏湖、羊蹄山 | 北海道道南圈 |
+| C0 | 15 | 高千穗峽、櫻島、阿蘇火山 | 九州自然圈 |
+| C23 | 15 | 福江島、久賀島、奈留島 | 長崎五島列島 |
+| C9 | 14 | 松島、十和田湖、奧入瀨溪 | 東北自然圈 |
+| C18 | 12 | 琵琶湖、淡路島、比叡山 | 關西湖山圈 |
+| C21 | 11 | 小豆島、男木島、直島 | 瀨戶內海島圈 |
+| C8 | 9 | 宮島、宮津灣、天橋立 | 日本三景圈 |
+| C14 | 6 | 江之島、湘南、鎌倉 | 湘南鎌倉圈 |
+| C13 | 6 | 摩周湖、阿寒湖、知床半島 | 北海道道東圈 |
+
+### 六維體驗側寫（RQ2）
+
+| 維度 | 語料平均 | 代表景點（極端值）|
+|------|---------|----------------|
+| crowd（人潮壓力）| −0.035 | 高壓：道頓堀（−0.378）|
+| accessibility（交通）| −0.002 | 難達：馬門岩（−0.284）、鷲羽山（−0.179）|
+| seasonal（季節限制）| −0.021 | 限制高：各花季景點 |
+| photo（打卡價值）| +0.099 | 高值：噴火灣（+0.833）、清津峡（+0.455）|
+| value（CP 值）| +0.071 | 整體偏正向 |
+| planning（規劃難度）| −0.002 | 接近中性 |
+
+### 隱藏版景點候選 Top 10（RQ3）
+
+情感分數 ≥ 0.65 且貼文數低於群集 Q1：
+
+| 景點 | 情感分數 | 貼文數 | hidden_score |
+|------|---------|--------|-------------|
+| 旭山 | 0.862 | 3 | 0.6218 |
+| 大雪山連峰 | 0.822 | 3 | 0.5932 |
+| 霧島山 | 0.759 | 3 | 0.5476 |
+| 彌彥山 | 0.744 | 3 | 0.5363 |
+| 倉敷美觀地區 | 0.717 | 3 | 0.5174 |
+| 中津溪谷 | 0.705 | 3 | 0.5086 |
+| 伊予灘 | 0.814 | 5 | 0.4541 |
+| 浦富海岸 | 0.710 | 4 | 0.4411 |
+| 鳥海山 | 0.707 | 4 | 0.4392 |
+| 慶良間諸島 | 0.670 | 3 | 0.4834 |
+
+> 下一步：KKday 商業曝光驗證（景點名稱是否出現於任何產品標題）
+
+---
+
+## 檔案結構
+
+```
+final_project/
+├── japan_travel.db           # 主資料庫（SQLite，69 MB）
+├── ptt_crawler.py            # 階段一：PTT 爬蟲
+├── ner_pipeline.py           # 階段二：CKIP NER 地名擷取
+├── prelabel_whitelist.py     # 階段三：白名單自動預標記
+├── apply_corrections.py      # 階段三：套用人工校正規則
+├── import_whitelist.py       # 階段三：匯入白名單至 DB
+├── build_pmi_network.py      # 階段四：PMI 共現網絡建構
+├── louvain_community.py      # 階段五：Louvain 社群偵測
+├── sentiment_analysis.py     # 階段六：情感分析
+├── recompute_dims.py         # 階段六：六維側寫重算（±150 字）
+├── review_spots.csv          # 階段三：人工審查景點表
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## 資料庫表格
+
+| 表格 | 用途 | 重要欄位 |
+|------|------|---------|
+| `posts` | PTT 原始文章（20,487 筆）| id, title, content, created_at |
+| `comments` | 推文 | post_id, content, floor |
+| `ner_locations` | NER 結果（20,340 筆）| post_id, entity, context（±50字）, in_whitelist |
+| `spot_whitelist` | 景點白名單（544 個）| name_zh, posts, mentions |
+| `spot_stats` | 各景點文章頻率 | spot, doc_freq, total_posts |
+| `cooccurrence_edges` | PMI 共現邊（370 條）| spot_a, spot_b, cooccur, pmi |
+| `spot_clusters` | Louvain 群集（含網絡指標）| spot, cluster_id, degree, betweenness, clustering |
+| `spot_sentiment` | 情感 + 六維側寫 + 隱藏分數 | spot, sentiment_score, dim_*, hidden_score |
+
+---
+
+## 待完成
+
+### 階段八：KKday 商業曝光驗證
+- 爬取 KKday 搜尋結果，判斷景點名稱是否出現於產品標題（二元）
+- 搜尋結果筆數 ≤ 3 作為輔助確信度指標
+- 腳本：待建立 `kkday_scraper.py`
+
+### 階段九：Streamlit Demo 工具
+- 輸入現有行程景點清單 → 輸出社群推薦隱藏版景點 top-5
+- 附 PMI 佐證與六維體驗摘要
+- 腳本：待建立 `app.py`
+
+### 階段十：Pyvis 視覺化
+- 互動式共現網絡圖，群集著色
+- 腳本：待建立 `visualize.py`

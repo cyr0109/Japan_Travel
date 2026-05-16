@@ -1,0 +1,23 @@
+# Crawler
+requests
+beautifulsoup4
+selenium
+undetected-chromedriver
+
+# NLP / NER
+ckip-transformers==0.3.4
+torch==2.12.0
+
+# Network analysis (upcoming)
+networkx
+python-louvain
+
+# Sentiment analysis (upcoming)
+transformers
+
+# Visualization (upcoming)
+pyvis
+streamlit
+
+# Utilities
+tqdm
