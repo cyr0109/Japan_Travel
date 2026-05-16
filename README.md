@@ -29,6 +29,7 @@ python recompute_dims.py       # 階段六：六維側寫（±150 字）
 ```
 
 > `japan_travel.db` 已含所有分析結果，可直接用 SQLite 查詢或接續未完成的階段八、九。
+> 資料庫下載：[japan_travel.db（Google Drive）](https://drive.google.com/file/d/1E9vAj85cLvoOQvkC-F6yqsdAL_H5dP4G/view?usp=sharing)
 
 ---
 
